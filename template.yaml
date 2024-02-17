@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Slack Bedrock Assitant.
+
+Resources:
+  BedrockAssitantFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bedrock_action_group_slack_app/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LambdaRole.Arn
+      Timeout: 300
+      MemorySize: 384
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          SECRET_NAME: 'Bedrock-sam-secrets-action-group' # Name of the secret in Secrets Manager
+          REGION_NAME: 'us-east-1' # Region of the secret in Secrets Manager
+
+      Events:
+        Slack:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /slack/events
+      Layers:
+        # Layer for AWS Parameter Store and Secrets Manager
+        # https://docs.aws.amazon.com/systems-manager/latest/userguide/ps-integration-lambda-extensions.html#ps-integration-lambda-extensions-add
+        - arn:aws:lambda:us-east-1:177933569100:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+        # Layer for boto3
+        # https://github.com/keithrozario/Klayers?tab=readme-ov-file#list-of-arns
+        - arn:aws:lambda:us-east-1:770693421928:layer:Klayers-p312-arm64-boto3:1
+
+  # Call from the Agents for AWS Bedrock.
+  BacklogSearchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backlogSearch/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LambdaRoleForActionGroup.Arn
+      Timeout: 300
+      MemorySize: 256
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          SECRET_NAME: 'Bedrock-sam-secrets-action-group' # Name of the secret in Secrets Manager
+          REGION_NAME: 'us-east-1' # Region of the secret in Secrets Manager
+      Layers:
+        # Layer for AWS Parameter Store and Secrets Manager
+        # https://docs.aws.amazon.com/systems-manager/latest/userguide/ps-integration-lambda-extensions.html#ps-integration-lambda-extensions-add
+        - arn:aws:lambda:us-east-1:177933569100:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:11
+        # Layer for requests and boto3
+        # https://github.com/keithrozario/Klayers?tab=readme-ov-file#list-of-arns
+        - arn:aws:lambda:us-east-1:770693421928:layer:Klayers-p312-arm64-requests:1
+        - arn:aws:lambda:us-east-1:770693421928:layer:Klayers-p312-arm64-boto3:1
+
+  # Resouse based policy for lambda.
+  PermissionForBacklogSearchToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt BacklogSearchFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: bedrock.amazonaws.com
+
+  # IAM Role for lambda.
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: bedrock-action-group-slack-app-lambda-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: allow-lambda-invocation
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                  - lambda:InvokeAsync
+                Resource: "*"
+        - PolicyName: SecretsManagerPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'secretsmanager:GetSecretValue' # Required for Lambda to retrieve the secret
+                Resource: "*"
+        - PolicyName: allow-bedrock-agent-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeAgent
+                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # IAM Role for lambda.
+  LambdaRoleForActionGroup:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: bedrock-action-group-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SecretsManagerPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'secretsmanager:GetSecretValue' # Required for Lambda to retrieve the secret
+                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+
+  BacklogAssitantLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${BedrockAssitantFunction}
+      RetentionInDays: 14 # Optional. Default retention is 30 days.
+
+  BacklogSearchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${BacklogSearchFunction}
+      RetentionInDays: 14 # Optional. Default retention is 30 days.
+
+
+Outputs:
+  BedrockAssitantApi:
+    Description: "The URL of Slack Event Subscriptions"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/events"
+  BedrockAssitantFunction:
+    Description: "Bedrock Assistant Lambda Function ARN"
+    Value: !GetAtt BedrockAssitantFunction.Arn
+  BacklogSearchFunction:
+    Description: "Backlog Search Lambda Function ARN"
+    Value: !GetAtt BacklogSearchFunction.Arn
+  BedrockAssitantFunctionIamRole:
+    Description: "Implicit IAM Role created for Bedrock Assistant function"
+    Value: !GetAtt LambdaRole.Arn

@@ -1,0 +1,1380 @@
+openapi: 3.0.0
+info:
+  title: Backlogの課題検索を行うアプリケーション
+  description: キーワードやパラメータをもとにBacklogの課題を検索する
+  version: 1.0.0
+servers:
+  -
+    url: 'https://{SpaceKey}.{domain}/api/{BasePath}'
+    description: BacklogのAPIを利用するためのURL｡
+    variables:
+      SpaceKey:
+        description: Backlogのスペース名
+        default: example
+      domain:
+        description: Backlogのドメイン
+        default: backlog.com
+      BasePath:
+        description: APIのバージョン
+        default: v2
+paths:
+  /issues:
+    get:
+      summary: Backlogの課題を検索する
+      description: Backlogの課題をキーワードやパラメータで検索し､結果の一覧を取得する
+      operationId: getIssueList
+      security:
+        -
+            ApiKeyAuth: []
+      tags:
+        - issues
+      responses:
+        200:
+          description: 検索成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getIssuesListResponse'
+      parameters:
+        -
+          name: 'projectId[]'
+          in: query
+          description: プロジェクトのID
+          schema:
+            type: array
+        -
+          name: 'issueTypeId[]'
+          in: query
+          description: 種別のID
+          schema:
+            type: array
+        -
+          name: 'categoryId[]'
+          in: query
+          description: カテゴリのID
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: 'versionId[]'
+          in: query
+          description: 発生バージョンのID
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: 'milestoneId[]'
+          in: query
+          description: マイルストーンのID
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: 'statusId[]'
+          in: query
+          description: 状態のID
+          schema:
+            type: array
+            items:
+              type: string
+        -
+          name: 'priorityId[]'
+          in: query
+          description: 優先度のID
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: 'assigneeId[]'
+          in: query
+          description: 担当者のID
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: 'createdUserId[]'
+          in: query
+          description: 登録者のID
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: 'resolutionId[]'
+          in: query
+          description: 完了理由のID
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: parentChild
+          in: query
+          description: 親子課題の条件
+          schema:
+            allOf:
+              -
+                $ref: '#/components/schemas/parentChildEnum'
+        -
+          name: attachment
+          in: query
+          description: 添付ファイルの有無
+          schema:
+            type: boolean
+            default: 'false'
+          examples:
+            'true':
+              value: 添付ファイルあり
+            'false':
+              value: 添付ファイルなし
+        -
+          name: sharedFile
+          in: query
+          description: 共有ファイルの有無
+          schema:
+            type: boolean
+            default: 'false'
+          examples:
+            'true':
+              value: 共有ファイルあり
+            'false':
+              value: 共有ファイルなし
+        -
+          name: sort
+          in: query
+          description: 課題の検索結果の並び替えに使用する属性名を指定する｡
+          schema:
+            type: string
+            enum:
+              - issueType
+              - category
+              - version
+              - milestone
+              - summary
+              - status
+              - priority
+              - attachment
+              - sharedFile
+              - created
+              - createdUser
+              - updated
+              - updatedUser
+              - assignee
+              - startDate
+              - dueDate
+              - estimatedHours
+              - actualHours
+              - childIssue
+              - 'customField_${id}'
+          x-enum-descriptions:
+            - 種別
+            - カテゴリ
+            - 発生バージョン
+            - マイルストーン
+            - 件名
+            - 状態
+            - 優先度
+            - 添付ファイル
+            - 共有ファイル
+            - 登録日
+            - 登録者
+            - 更新日
+            - 更新者
+            - 担当者
+            - 開始日
+            - 期限日
+            - 予定時間
+            - 実績時間
+            - 子課題の数
+            - カスタムフィールド
+        -
+          name: order
+          in: query
+          description: 課題の並び順を指定する｡
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          x-enum-descriptions:
+            - 昇順
+            - 降順
+        -
+          name: count
+          in: query
+          description: 課題を取得する件数｡指定した件数の課題を取得する｡
+          schema:
+            type: integer
+            default: 20
+        -
+          name: offset
+          in: query
+          description: 取得開始位置
+          schema:
+            type: integer
+            default: 0
+        -
+          name: createdSince
+          in: query
+          description: 登録日の範囲(開始)
+          schema:
+            type: string
+            format: date-time
+            example: '2019-01-01T00:00:00'
+        -
+          name: createdUntil
+          in: query
+          description: 登録日の範囲(終了)
+          schema:
+            type: string
+            format: date-time
+            example: '2019-01-01T00:00:00'
+        -
+          name: updatedSince
+          in: query
+          description: 更新日の範囲(開始)
+          schema:
+            type: string
+            format: date-time
+            example: '2019-01-01T00:00:00'
+        -
+          name: updatedUntil
+          in: query
+          description: 更新日の範囲(終了)
+          schema:
+            type: string
+            format: date-time
+            example: '2019-01-01T00:00:00'
+        -
+          name: startDateSince
+          in: query
+          description: 開始日の範囲(開始)
+          schema:
+            type: string
+            format: date-time
+            example: '2019-01-01T00:00:00'
+        -
+          name: startDateUntil
+          in: query
+          description: 開始日の範囲(終了)
+          schema:
+            type: string
+            format: date-time
+            example: '2019-01-01T00:00:00'
+        -
+          name: dueDateSince
+          in: query
+          description: 期限日の範囲(開始)
+          schema:
+            type: string
+            format: date-time
+            example: '2019-01-01T00:00:00'
+        -
+          name: dueDateUntil
+          in: query
+          description: 期限日の範囲(終了)
+          schema:
+            type: string
+            format: date-time
+            example: '2019-01-01T00:00:00'
+        -
+          name: 'ids[]'
+          in: query
+          description: 課題のID
+          schema:
+            type: array
+            items:
+              type: integer
+        -
+          name: 'parentIssueId[]'
+          in: query
+          description: 親課題のID
+          schema:
+            type: array
+        -
+          name: keyword
+          in: query
+          description: 検索キーワード
+          schema:
+            type: string
+  /wikis:
+    get:
+      summary: BacklogのWikiを検索する
+      description: BacklogのWikiをキーワードやパラメータで検索し､結果の一覧を取得する
+      operationId: getWikiList
+      security:
+        -
+          ApiKeyAuth: []
+      tags:
+        - wikis
+      responses:
+        200:
+          description: 検索成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getWikiListResponse'
+      parameters:
+        -
+          name: keyword
+          in: query
+          description: 検索キーワード
+          schema:
+            type: string
+        -
+          name: projectIdOrKey
+          in: query
+          description: プロジェクトキー。もしくは、プロジェクトID
+          required: true
+          schema:
+            type: string
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      name: apiKey
+      in: query
+  schemas:
+    getIssuesListResponse:
+      description: 検索結果を示すJSON
+      type: object
+      properties:
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/issue'
+    issue:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 課題のID
+        projectId:
+          type: integer
+          description: プロジェクトのID
+        issueKey:
+          type: string
+          description: 課題のキー
+        keyId:
+          type: integer
+          description: 課題キーのID
+        issueType:
+          type: object
+          description: 種別
+          properties:
+            id:
+              type: integer
+              description: 種別のID
+            projectId:
+              type: integer
+              description: プロジェクトのID
+            name:
+              type: string
+              description: 種別の名前
+            color:
+              type: string
+              description: 種別の色
+            displayOrder:
+              type: integer
+              description: 種別の表示順
+        summary:
+          type: string
+          description: 課題の件名
+        description:
+          type: string
+          description: 課題の本文
+        resolution:
+          type: object
+          description: 完了理由
+          properties:
+            id:
+              type: integer
+              description: 完了理由のID
+            name:
+              type: string
+              description: 完了理由の名前
+        priority:
+          type: object
+          description: 優先度
+          properties:
+            id:
+              type: integer
+              description: 優先度のID
+            name:
+              type: string
+              description: 優先度
+        status:
+          type: object
+          description: 状態
+          properties:
+            id:
+              type: integer
+              description: 状態のID
+            projectId:
+              type: integer
+              description: プロジェクトのID
+            name:
+              type: string
+              description: 状態の名前
+            color:
+              type: string
+              description: 状態の色
+            displayOrder:
+              type: integer
+              description: 状態の表示順
+        assignee:
+          type: object
+          description: 担当者
+          properties:
+            id:
+              type: integer
+              description: 担当者のID
+            userId:
+              type: string
+              description: 担当者のユーザーID
+            name:
+              type: string
+              description: 担当者の名前
+            roleType:
+              type: integer
+              description: 担当者の権限
+              $ref: '#/components/schemas/roleTypeEnum'
+            lang:
+              type: string
+              description: 担当者の言語
+              $ref: '#/components/schemas/LangEnum'
+            mailAddress:
+              type: string
+              description: 担当者のメールアドレス
+            nulabAccount:
+              type: object
+              description: Nulabアカウント
+              properties:
+                nulabId:
+                  type: integer
+                  description: NulabアカウントのID
+                name:
+                  type: string
+                  description: Nulabアカウントの名前
+                uniqueId:
+                  type: string
+                  description: NulabアカウントのユニークID
+            keyword:
+              type: string
+              description: ユーザーの愛称
+            lastLoginTime:
+              type: string
+              format: date-time
+              description: 最終ログイン日時
+              example: '2019-01-01T00:00:00'
+        category:
+          type: array
+          description: カテゴリ
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: カテゴリのID
+              projectId:
+                type: integer
+                description: プロジェクトのID
+              name:
+                type: string
+                description: カテゴリの名前
+              displayOrder:
+                type: integer
+                description: カテゴリの表示順
+        versions:
+          type: array
+          description: 発生バージョン
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: 発生バージョンのID
+              projectId:
+                type: integer
+                description: プロジェクトのID
+              name:
+                type: string
+                description: 発生バージョンの名前
+              description:
+                type: string
+                description: 発生バージョンの説明
+              startDate:
+                type: string
+                format: date-time
+                description: 発生バージョンの開始日
+                example: '2019-01-01T00:00:00'
+              releaseDueDate:
+                type: string
+                format: date-time
+                description: 発生バージョンのリリース予定日
+                example: '2019-01-01T00:00:00'
+              archived:
+                type: boolean
+                description: 発生バージョンが過去のものかどうか
+              displayOrder:
+                type: integer
+                description: 発生バージョンの表示順
+        milestone:
+          type: array
+          description: マイルストーン
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: マイルストーンのID
+              projectId:
+                type: integer
+                description: プロジェクトのID
+              name:
+                type: string
+                description: マイルストーンの名前
+              description:
+                type: string
+                description: マイルストーンの説明
+              startDate:
+                type: string
+                format: date-time
+                description: マイルストーンの開始日
+                example: '2019-01-01T00:00:00'
+              releaseDueDate:
+                type: string
+                format: date-time
+                description: マイルストーンのリリース予定日
+                example: '2019-01-01T00:00:00'
+              archived:
+                type: boolean
+                description: マイルストーンが過去のものかどうか
+              displayOrder:
+                type: integer
+                description: マイルストーンの表示順
+        startDate:
+          type: string
+          format: date-time
+          description: 開始日
+          example: '2019-01-01T00:00:00'
+        dueDate:
+          type: string
+          format: date-time
+          description: 期限日
+          example: '2019-01-01T00:00:00'
+        estimatedHours:
+          type: integer
+          description: 予定時間
+        actualHours:
+          type: integer
+          description: 実績時間
+        parentIssueId:
+          type: integer
+          description: 親課題のID
+        createdUser:
+          type: array
+          description: 登録者
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: 登録者のID
+              userId:
+                type: string
+                description: 登録者のユーザーID
+              name:
+                type: string
+                description: 登録者の名前
+              roleType:
+                type: integer
+                description: 登録者の権限
+                $ref: '#/components/schemas/roleTypeEnum'
+              lang:
+                type: string
+                description: 登録者の言語
+                $ref: '#/components/schemas/LangEnum'
+              mailAddress:
+                type: string
+                description: 登録者のメールアドレス
+              nulabAccount:
+                type: object
+                description: Nulabアカウント
+                properties:
+                  nulabId:
+                    type: integer
+                    description: NulabアカウントのID
+                  name:
+                    type: string
+                    description: Nulabアカウントの名前
+                  uniqueId:
+                    type: string
+                    description: NulabアカウントのユニークID
+              keyword:
+                type: string
+                description: ユーザーの愛称
+              lastLoginTime:
+                type: string
+                format: date-time
+                description: 最終ログイン日時
+                example: '2019-01-01T00:00:00'
+        created:
+          type: string
+          format: date-time
+          description: 登録日
+          example: '2019-01-01T00:00:00'
+        updatedUser:
+          type: object
+          description: 更新者
+          properties:
+            id:
+              type: integer
+              description: 更新者のID
+            userId:
+              type: string
+              description: 更新者のユーザーID
+            name:
+              type: string
+              description: 更新者の名前
+            roleType:
+              type: integer
+              description: 更新者の権限
+              $ref: '#/components/schemas/roleTypeEnum'
+            lang:
+              type: string
+              description: 更新者の言語
+              $ref: '#/components/schemas/LangEnum'
+            mailAddress:
+              type: string
+              description: 更新者のメールアドレス
+            nulabAccount:
+              type: object
+              description: Nulabアカウント
+              properties:
+                nulabId:
+                  type: integer
+                  description: NulabアカウントのID
+                name:
+                  type: string
+                  description: Nulabアカウントの名前
+                uniqueId:
+                  type: string
+                  description: NulabアカウントのユニークID
+            keyword:
+              type: string
+              description: ユーザーの愛称
+            lastLoginTime:
+              type: string
+              format: date-time
+              description: 最終ログイン日時
+              example: '2019-01-01T00:00:00'
+        updated:
+          type: string
+          format: date-time
+          description: 更新日
+          example: '2019-01-01T00:00:00'
+        customFields:
+          type: array
+          description: カスタムフィールド
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: カスタムフィールドのID
+              fieldTypeId:
+                type: integer
+                description: カスタムフィールドの種別ID
+              name:
+                type: string
+                description: カスタムフィールドの名前
+              value:
+                type: string
+                description: カスタムフィールドの値
+        attachments:
+          type: array
+          description: 添付ファイル
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: 添付ファイルのID
+              name:
+                type: string
+                description: 添付ファイルの名前
+              size:
+                type: integer
+                description: 添付ファイルのサイズ
+              createdUser:
+                type: object
+                description: 登録者
+                properties:
+                  id:
+                    type: integer
+                    description: 登録者のID
+                  userId:
+                    type: string
+                    description: 登録者のユーザーID
+                  name:
+                    type: string
+                    description: 登録者の名前
+                  roleType:
+                    type: integer
+                    description: 登録者の権限
+                    $ref: '#/components/schemas/roleTypeEnum'
+                  lang:
+                    type: string
+                    description: 登録者の言語
+                    $ref: '#/components/schemas/LangEnum'
+                  mailAddress:
+                    type: string
+                    description: 登録者のメールアドレス
+                  nulabAccount:
+                    type: object
+                    description: Nulabアカウント
+                    properties:
+                      nulabId:
+                        type: integer
+                        description: NulabアカウントのID
+                      name:
+                        type: string
+                        description: Nulabアカウントの名前
+                      uniqueId:
+                        type: string
+                        description: NulabアカウントのユニークID
+                  keyword:
+                    type: string
+                    description: ユーザーの愛称
+                  lastLoginTime:
+                    type: string
+                    format: date-time
+                    description: 最終ログイン日時
+                    example: '2019-01-01T00:00:00'
+              created:
+                type: string
+                format: date-time
+                description: 登録日
+                example: '2019-01-01T00:00:00'
+        sharedFiles:
+          type: array
+          description: 共有ファイル
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: 共有ファイルのID
+              type:
+                type: string
+                description: 共有ファイルの種類
+              dir:
+                type: string
+                description: 共有ファイルのディレクトリ
+              name:
+                type: string
+                description: 共有ファイルの名前
+              size:
+                type: integer
+                description: 共有ファイルのサイズ
+              createdUser:
+                type: object
+                description: 登録者
+                properties:
+                  id:
+                    type: integer
+                    description: 登録者のID
+                  userId:
+                    type: string
+                    description: 登録者のユーザーID
+                  name:
+                    type: string
+                    description: 登録者の名前
+                  roleType:
+                    type: integer
+                    description: 登録者の権限
+                    $ref: '#/components/schemas/roleTypeEnum'
+                  lang:
+                    type: string
+                    description: 登録者の言語
+                    $ref: '#/components/schemas/LangEnum'
+                  mailAddress:
+                    type: string
+                    description: 登録者のメールアドレス
+                  nulabAccount:
+                    type: object
+                    description: Nulabアカウント
+                    properties:
+                      nulabId:
+                        type: integer
+                        description: NulabアカウントのID
+                      name:
+                        type: string
+                        description: Nulabアカウントの名前
+                      uniqueId:
+                        type: string
+                        description: NulabアカウントのユニークID
+                  keyword:
+                    type: string
+                    description: ユーザーの愛称
+                  lastLoginTime:
+                    type: string
+                    format: date-time
+                    description: 最終ログイン日時
+                    example: '2019-01-01T00:00:00'
+              created:
+                type: string
+                format: date-time
+                description: 登録日
+                example: '2019-01-01T00:00:00'
+              updatedUser:
+                type: object
+                description: 更新者
+                properties:
+                  id:
+                    type: integer
+                    description: 更新者のID
+                  userId:
+                    type: string
+                    description: 更新者のユーザーID
+                  name:
+                    type: string
+                    description: 更新者の名前
+                  roleType:
+                    type: integer
+                    description: 更新者の権限
+                    $ref: '#/components/schemas/roleTypeEnum'
+                  lang:
+                    type: string
+                    description: 更新者の言語
+                    $ref: '#/components/schemas/LangEnum'
+                  mailAddress:
+                    type: string
+                    description: 更新者のメールアドレス
+                  nulabAccount:
+                    type: object
+                    description: Nulabアカウント
+                    properties:
+                      nulabId:
+                        type: integer
+                        description: NulabアカウントのID
+                      name:
+                        type: string
+                        description: Nulabアカウントの名前
+                      uniqueId:
+                        type: string
+                        description: NulabアカウントのユニークID
+                  keyword:
+                    type: string
+                    description: ユーザーの愛称
+                  lastLoginTime:
+                    type: string
+                    format: date-time
+                    description: 最終ログイン日時
+                    example: '2019-01-01T00:00:00'
+              updated:
+                type: string
+                format: date-time
+                description: 更新日
+                example: '2019-01-01T00:00:00'
+        stars:
+          type: array
+          description: お気に入り
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: スターのID
+              comment:
+                type: string
+                description: スターを付けたコメント
+              url:
+                type: string
+                description: スターを付けた課題のURL
+              title:
+                type: string
+                description: スターを付けた課題のタイトル
+              presenter:
+                type: object
+                description: スターの登録者
+                properties:
+                  id:
+                    type: integer
+                    description: 登録者のID
+                  userId:
+                    type: string
+                    description: 登録者のユーザーID
+                  name:
+                    type: string
+                    description: 登録者の名前
+                  roleType:
+                    type: integer
+                    description: 登録者の権限
+                    $ref: '#/components/schemas/roleTypeEnum'
+                  lang:
+                    type: string
+                    description: 登録者の言語
+                    $ref: '#/components/schemas/LangEnum'
+                  mailAddress:
+                    type: string
+                    description: 登録者のメールアドレス
+                  nulabAccount:
+                    type: object
+                    description: Nulabアカウント
+                    properties:
+                      nulabId:
+                        type: integer
+                        description: NulabアカウントのID
+                      name:
+                        type: string
+                        description: Nulabアカウントの名前
+                      uniqueId:
+                        type: string
+                        description: NulabアカウントのユニークID
+                  keyword:
+                    type: string
+                    description: ユーザーの愛称
+                  lastLoginTime:
+                    type: string
+                    format: date-time
+                    description: 最終ログイン日時
+                    example: '2019-01-01T00:00:00'
+    getWikiListResponse:
+      description: Wikiの検索結果
+      type: object
+      properties:
+        wikis:
+          type: array
+          items:
+            $ref: '#/components/schemas/wiki'
+    wiki:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 'Wiki ID'
+        projectId:
+          type: integer
+          description: プロジェクトID
+        name:
+          type: string
+          description: Wiki名
+        content:
+          type: string
+          description: Wikiの内容
+        tags:
+          type: array
+          items:
+            type: string
+            description: Wikiのタグ
+        attachments:
+          type: array
+          description: 添付ファイル
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: 添付ファイルのID
+              name:
+                type: string
+                description: 添付ファイルの名前
+              size:
+                type: integer
+                description: 添付ファイルのサイズ
+              createdUser:
+                type: object
+                description: 登録者
+                properties:
+                  id:
+                    type: integer
+                    description: 登録者のID
+                  userId:
+                    type: string
+                    description: 登録者のユーザーID
+                  name:
+                    type: string
+                    description: 登録者の名前
+                  roleType:
+                    type: integer
+                    description: 登録者の権限
+                    $ref: '#/components/schemas/roleTypeEnum'
+                  lang:
+                    type: string
+                    description: 登録者の言語
+                    $ref: '#/components/schemas/LangEnum'
+                  mailAddress:
+                    type: string
+                    description: 登録者のメールアドレス
+                  nulabAccount:
+                    type: object
+                    description: Nulabアカウント
+                    properties:
+                      nulabId:
+                        type: integer
+                        description: NulabアカウントのID
+                      name:
+                        type: string
+                        description: Nulabアカウントの名前
+                      uniqueId:
+                        type: string
+                        description: NulabアカウントのユニークID
+                  keyword:
+                    type: string
+                    description: ユーザーの愛称
+                  lastLoginTime:
+                    type: string
+                    format: date-time
+                    description: 最終ログイン日時
+                    example: '2019-01-01T00:00:00'
+              created:
+                type: string
+                format: date-time
+                description: 登録日
+                example: '2019-01-01T00:00:00'
+        sharedFiles:
+          type: array
+          description: 共有ファイル
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: 共有ファイルのID
+              type:
+                type: string
+                description: 共有ファイルの種類
+              dir:
+                type: string
+                description: 共有ファイルのディレクトリ
+              name:
+                type: string
+                description: 共有ファイルの名前
+              size:
+                type: integer
+                description: 共有ファイルのサイズ
+              createdUser:
+                type: object
+                description: 登録者
+                properties:
+                  id:
+                    type: integer
+                    description: 登録者のID
+                  userId:
+                    type: string
+                    description: 登録者のユーザーID
+                  name:
+                    type: string
+                    description: 登録者の名前
+                  roleType:
+                    type: integer
+                    description: 登録者の権限
+                    $ref: '#/components/schemas/roleTypeEnum'
+                  lang:
+                    type: string
+                    description: 登録者の言語
+                    $ref: '#/components/schemas/LangEnum'
+                  mailAddress:
+                    type: string
+                    description: 登録者のメールアドレス
+                  nulabAccount:
+                    type: object
+                    description: Nulabアカウント
+                    properties:
+                      nulabId:
+                        type: integer
+                        description: NulabアカウントのID
+                      name:
+                        type: string
+                        description: Nulabアカウントの名前
+                      uniqueId:
+                        type: string
+                        description: NulabアカウントのユニークID
+                  keyword:
+                    type: string
+                    description: ユーザーの愛称
+                  lastLoginTime:
+                    type: string
+                    format: date-time
+                    description: 最終ログイン日時
+                    example: '2019-01-01T00:00:00'
+              created:
+                type: string
+                format: date-time
+                description: 登録日
+                example: '2019-01-01T00:00:00'
+              updatedUser:
+                type: object
+                description: 更新者
+                properties:
+                  id:
+                    type: integer
+                    description: 更新者のID
+                  userId:
+                    type: string
+                    description: 更新者のユーザーID
+                  name:
+                    type: string
+                    description: 更新者の名前
+                  roleType:
+                    type: integer
+                    description: 更新者の権限
+                    $ref: '#/components/schemas/roleTypeEnum'
+                  lang:
+                    type: string
+                    description: 更新者の言語
+                    $ref: '#/components/schemas/LangEnum'
+                  mailAddress:
+                    type: string
+                    description: 更新者のメールアドレス
+                  nulabAccount:
+                    type: object
+                    description: Nulabアカウント
+                    properties:
+                      nulabId:
+                        type: integer
+                        description: NulabアカウントのID
+                      name:
+                        type: string
+                        description: Nulabアカウントの名前
+                      uniqueId:
+                        type: string
+                        description: NulabアカウントのユニークID
+                  keyword:
+                    type: string
+                    description: ユーザーの愛称
+                  lastLoginTime:
+                    type: string
+                    format: date-time
+                    description: 最終ログイン日時
+                    example: '2019-01-01T00:00:00'
+              updated:
+                type: string
+                format: date-time
+                description: 更新日
+                example: '2019-01-01T00:00:00'
+        stars:
+          type: array
+          description: お気に入り
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: スターのID
+              comment:
+                type: string
+                description: スターを付けたコメント
+              url:
+                type: string
+                description: スターを付けた課題のURL
+              title:
+                type: string
+                description: スターを付けた課題のタイトル
+              presenter:
+                type: object
+                description: スターの登録者
+                properties:
+                  id:
+                    type: integer
+                    description: 登録者のID
+                  userId:
+                    type: string
+                    description: 登録者のユーザーID
+                  name:
+                    type: string
+                    description: 登録者の名前
+                  roleType:
+                    type: integer
+                    description: 登録者の権限
+                    $ref: '#/components/schemas/roleTypeEnum'
+                  lang:
+                    type: string
+                    description: 登録者の言語
+                    $ref: '#/components/schemas/LangEnum'
+                  mailAddress:
+                    type: string
+                    description: 登録者のメールアドレス
+                  nulabAccount:
+                    type: object
+                    description: Nulabアカウント
+                    properties:
+                      nulabId:
+                        type: integer
+                        description: NulabアカウントのID
+                      name:
+                        type: string
+                        description: Nulabアカウントの名前
+                      uniqueId:
+                        type: string
+                        description: NulabアカウントのユニークID
+                  keyword:
+                    type: string
+                    description: ユーザーの愛称
+                  lastLoginTime:
+                    type: string
+                    format: date-time
+                    description: 最終ログイン日時
+                    example: '2019-01-01T00:00:00'
+        createdUser:
+          type: object
+          properties:
+            id:
+              type: integer
+              description: 作成者のID
+            userId:
+              type: string
+              description: 作成者のユーザーID
+            name:
+              type: string
+              description: 作成者の名前
+            roleType:
+              type: integer
+              description: 作成者の権限
+              $ref: '#/components/schemas/roleTypeEnum'
+            lang:
+              type: string
+              description: 作成者の言語
+              $ref: '#/components/schemas/LangEnum'
+            mailAddress:
+              type: string
+              description: 作成者のメールアドレス
+            keyword:
+              type: string
+              description: ユーザーの愛称
+            lastLoginTime:
+              type: string
+              format: date-time
+              description: 最終ログイン日時
+              example: '2019-01-01T00:00:00'
+        created:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: '2019-01-01T00:00:00'
+        updatedUser:
+          type: object
+          properties:
+            id:
+              type: integer
+              description: 更新者のID
+            userId:
+              type: string
+              description: 更新者のユーザーID
+            name:
+              type: string
+              description: 更新者の名前
+            roleType:
+              type: integer
+              description: 更新者の権限
+              $ref: '#/components/schemas/roleTypeEnum'
+            lang:
+              type: string
+              description: 更新者の言語
+              $ref: '#/components/schemas/LangEnum'
+            mailAddress:
+              type: string
+              description: 更新者のメールアドレス
+            keyword:
+              type: string
+              description: ユーザーの愛称
+            lastLoginTime:
+              type: string
+              format: date-time
+              description: 最終ログイン日時
+              example: '2019-01-01T00:00:00'
+        updated:
+          type: string
+          format: date-time
+          description: 更新日時
+          example: '2019-01-01T00:00:00'
+    parentChildEnum:
+      type: integer
+      default: 0
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+      x-enum-varnames:
+        - all
+        - exceptChildIssue
+        - OnlyChildIssue
+        - neitherParentIssueNorChildIssue
+        - onlyParentIssue
+      x-enum-descriptions:
+        - 'Used when you want to get all issues.'
+        - 'Used when you want to get all issues except child issues.'
+        - 'Used when you want to get only child issues.'
+        - 'Used when you want to get issues neither Parent Issue nor Child Issue'
+        - 'Used when you want to get only Parent Issues.'
+      example:
+        -
+          value: 全て
+        -
+          value: 子課題以外
+        -
+          value: 子課題のみ
+        -
+          value: 親課題でも子課題でもない課題
+        -
+          value: 親課題のみ
+      description: 親子課題の条件
+    roleTypeEnum:
+      type: integer
+      enum:
+        - 1
+        - 2
+        - 3
+        - 4
+      x-enum-varnames:
+        - Administrator
+        - 'Normal User'
+        - Reporter
+        - Viewer
+      x-enum-descriptions:
+        - 'Used with administrator privileges'
+        - 'Usde with normal privileges'
+        - 'Used with reporter privileges'
+        - 'Used with viewer privileges'
+      example:
+        1:
+          value: 管理者
+        2:
+          value: ' 一般ユーザー、ゲスト（制限：制限なし）'
+        3:
+          value: 一般ユーザー、ゲスト（制限：課題の登録のみ）
+        4:
+          value: 一般ユーザー、ゲスト（制限：課題の閲覧のみ）
+      description: 権限の種類
+    LangEnum:
+      type: object
+      enum:
+        - ja
+        - en
+        - null
+      x-enum-varnames:
+        - Japanese
+        - English
+        - null
+      x-enum-descriptions:
+        - Japanese
+        - English
+        - 'not set'
+      example:
+        ja:
+          value: 日本語
+        en:
+          value: 英語
+        'null':
+          value: 未設定
+      description: ユーザーの言語設定
