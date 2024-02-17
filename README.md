@@ -45,8 +45,6 @@ You must set up the AWS Secrets Manager, Agents for AWS bedrock, and Slack App. 
 
 https://qiita.com/revsystem/private/93e9c744c63c5667a810
 
-```console
-
 ## Delete
 
 ```console
