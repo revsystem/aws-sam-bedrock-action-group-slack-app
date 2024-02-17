@@ -14,9 +14,7 @@ source .venv/bin/activate
 ```console
 pip3 install --upgrade pip
 pip3 --version
-```
 
-```console
 pip 23.3.2 from /home/xxxxx/aws-sam-bedrock-action-group-slack-rag-app/.venv/lib/python3.12/site-packages/pip (python 3.12)
 ```
 
@@ -24,6 +22,9 @@ pip 23.3.2 from /home/xxxxx/aws-sam-bedrock-action-group-slack-rag-app/.venv/lib
 
 ```console
 curl -OL  https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+```
+
+```console
 unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
 ```
 
@@ -31,7 +32,6 @@ Install the AWS SAM CLI.
 
 ```console
 sudo ./sam-installation/install
-sam --version
 ```
 
 ## Deploy
